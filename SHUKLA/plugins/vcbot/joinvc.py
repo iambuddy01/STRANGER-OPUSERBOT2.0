@@ -3,7 +3,12 @@ from SHUKLA.modules.clients.func import *
 from SHUKLA.modules.clients.utils import *
 from pyrogram import Client, filters
 from pytgcalls import StreamType
-from pytgcalls.exceptions import AlreadyJoinedError, NoActiveGroupCall, TelegramServerError, GroupCallNotFound
+from pytgcalls.exceptions import (
+    AlreadyJoinedError,
+    NoActiveGroupCall,
+    TelegramServerError,
+    GroupCallNotFound
+)
 import logging
 import os
 
@@ -11,6 +16,20 @@ logger = logging.getLogger(__name__)
 
 # Path to silent audio file
 SILENCE_FILE = "SHUKLA/resource/audio/silence.mp3"
+
+# ✅ Helper: safely fetch chat_id
+async def get_chat_id(client, user_id):
+    """
+    Returns the saved chat ID for a user if available,
+    or tries to get it directly from Pyrogram if user_id is a chat.
+    """
+    try:
+        # If you're saving user chat mappings, load from DB here
+        chat = await client.get_chat(user_id)
+        return chat.id
+    except Exception as e:
+        logger.error(f"❌ Failed to get chat ID for {user_id}: {e}")
+        return 0
 
 # Join Voice Chat (vcjoin)
 @app.on_message(commandz(["vcjoin"]) & SUDOERS)
@@ -42,7 +61,7 @@ async def join_voice_chat(client, message):
 @app.on_message(cdz(["cjoin"]) & SUDOERS)
 async def custom_join_voice_chat(client, message):
     user_id = message.from_user.id
-    chat_id = await get_chat_id(user_id)
+    chat_id = await get_chat_id(client, user_id)
     if chat_id == 0:
         return await eor(message, "**🥀 Please Set A Chat To Join Stream❗**")
     m = await eor(message, "**🔄 Joining Voice Chat ...**")
@@ -86,7 +105,7 @@ async def leave_voice_chat(client, message):
 @app.on_message(cdz(["cvcleave"]) & SUDOERS)
 async def custom_leave_voice_chat(client, message):
     user_id = message.from_user.id
-    chat_id = await get_chat_id(user_id)
+    chat_id = await get_chat_id(client, user_id)
     if chat_id == 0:
         return await eor(message, "**🥀 Please Set A Chat To Leave Stream❗**")
     m = await eor(message, "**🔄 Leaving Voice Chat ...**")
